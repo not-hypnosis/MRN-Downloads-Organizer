@@ -1,19 +1,28 @@
 # MRN Downloads Organizer
 
+**Version 1.1**
+
 A lightweight Windows desktop utility that automatically organizes messy folders by sorting files into categorized directories based on their extensions.
 
-Built with Python and Tkinter, this application provides a simple graphical interface for managing downloaded files without manually sorting them.
+Built with Python's standard library and Tkinter, this application provides a polished dark-themed desktop interface for managing files without manually sorting them.
 
 ## ✨ Features
 
-- **Automatic File Categorization** — Sort files based on their extensions.
-- **Folder Selection** — Organize Downloads or any explicitly selected folder.
+- **Premium Dark Interface** — A clean, modern desktop experience with a dark navy palette and blue accents.
+- **Five Navigation Pages** — Dashboard, Organizer, Categories, Settings and About.
+- **Dashboard** — View scanned and ready-to-organize file totals, detected categories, the selected folder and recent activity.
+- **Organizer Workspace** — Select a folder, use the Downloads shortcut, scan files and review organization results.
+- **Automatic File Categorization** — Sort files into supported categories based on their extensions.
 - **Downloads Shortcut** — Quickly access the Windows Downloads directory.
-- **File Scanning** — Scan folders and display category-wise file counts.
-- **Organization Preview** — Review files before moving them.
+- **Category Overview** — See supported categories and the detected file count for each.
+- **Organization Preview** — Review the files and destinations before confirming any moves.
+- **Background Work** — Scanning and organizing run in the background to keep the interface responsive.
+- **Progress Indicator** — Follow scan and organization progress.
+- **Per-file Results** — Review successfully moved, skipped and failed files.
+- **Open Organized Folder** — Open the selected folder after organizing, if enabled in Settings.
+- **Persistent Preferences** — Save the last-folder and open-after-organizing options in a JSON settings file in the Windows user application-data directory.
 - **Duplicate Protection** — Prevent accidental overwriting by generating unique filenames.
 - **Safe File Handling** — Never delete files or recursively process subdirectories.
-- **Operation Summary** — View successfully moved, skipped and failed files.
 
 ## 📂 Supported Categories
 
@@ -68,14 +77,14 @@ python Dowload_org.py
 
 ## 🔒 Safety
 
-MRN Downloads Organizer is designed with basic file safety in mind.
+MRN Downloads Organizer operates only on a folder explicitly selected by the user. It does not automatically select or organize a drive or drive root.
 
-- No automatic drive-wide organization.
-- No recursive directory processing.
+- No automatic drive-wide organization or drive-root processing.
+- Scanning is limited to the immediate contents of the selected folder; subfolders are not processed or moved.
 - No file deletion.
 - No overwriting existing files.
-- Existing subdirectories are excluded from scanning.
-- The application source file is excluded from organization.
+- When a destination filename already exists, a unique filename is generated instead.
+- The application source file and temporary files are excluded from scanning and organization.
 
 Always review the preview before confirming file operations.
 
@@ -85,18 +94,18 @@ Always review the preview before confirming file operations.
 - [x] Automatic file categorization.
 - [x] Folder scanning and preview.
 - [x] Duplicate filename protection.
-- [ ] Premium desktop interface.
-- [ ] Persistent application settings.
-- [ ] Progress indicators.
+- [x] Premium desktop interface and five-page navigation.
+- [x] Persistent application settings and progress indicators.
+- [x] Background scanning and organizing with per-file results.
 - [ ] Standalone Windows executable (.exe).
 
 ## 📌 Project Status
 
-**Current Version:** 1.0
+**Current Version:** 1.1
 
-**Status:** Functional — Initial testing completed.
+**Status:** Functional — V1.1 desktop interface and organizer workflow implemented.
 
-Further UI improvements and Windows application packaging are planned.
+Windows application packaging is not included in this version.
 
 ---
 
