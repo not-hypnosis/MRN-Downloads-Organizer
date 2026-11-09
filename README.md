@@ -1,6 +1,6 @@
 # MRN Downloads Organizer
 
-**Version 1.1**
+**Version 1.2 — Quality-of-Life Improvements**
 
 A lightweight Windows desktop utility that automatically organizes messy folders by sorting files into categorized directories based on their extensions.
 
@@ -12,15 +12,20 @@ Built with Python's standard library and Tkinter, this application provides a po
 - **Five Navigation Pages** — Dashboard, Organizer, Categories, Settings and About.
 - **Dashboard** — View scanned and ready-to-organize file totals, detected categories, the selected folder and recent activity.
 - **Organizer Workspace** — Select a folder, use the Downloads shortcut, scan files and review organization results.
+- **Quick Rescan** — Rescan the currently selected folder without selecting it again.
 - **Automatic File Categorization** — Sort files into supported categories based on their extensions.
 - **Downloads Shortcut** — Quickly access the Windows Downloads directory.
 - **Category Overview** — See supported categories and the detected file count for each.
 - **Organization Preview** — Review the files and destinations before confirming any moves.
+- **Live Search and Sorting** — Filter preview and operation results by filename as you type; search is case-insensitive. Sort by filename, extension, file size or category in ascending or descending order.
+- **Organization Confirmation Summary** — Before moving files, review the number of files, categories involved and the destination folder.
 - **Background Work** — Scanning and organizing run in the background to keep the interface responsive.
 - **Progress Indicator** — Follow scan and organization progress.
 - **Per-file Results** — Review successfully moved, skipped and failed files.
 - **Open Organized Folder** — Open the selected folder after organizing, if enabled in Settings.
-- **Persistent Preferences** — Save the last-folder and open-after-organizing options in a JSON settings file in the Windows user application-data directory.
+- **Persistent Preferences** — Save the last-folder and open-after-organizing options, plus window size and position, in a JSON settings file in the Windows user application-data directory.
+- **Clear Session** — Clear scan statistics, preview data and operation results after confirmation, without changing files or saved preferences.
+- **Clear Feedback** — Get scan summaries, empty-folder and unsupported-file notices, organization completion status and partial-failure counts.
 - **Duplicate Protection** — Prevent accidental overwriting by generating unique filenames.
 - **Safe File Handling** — Never delete files or recursively process subdirectories.
 
@@ -44,9 +49,8 @@ Built with Python's standard library and Tkinter, this application provides a po
 
 - Python 3
 - Tkinter / ttk
-- Python Standard Library
 
-No external dependencies are required for the current version.
+The application uses Python's standard library only. No external dependencies are required.
 
 ## 🚀 Getting Started
 
@@ -60,7 +64,7 @@ No external dependencies are required for the current version.
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/MRN-Downloads-Organizer.git
+git clone https://github.com/not-hypnosis/MRN-Downloads-Organizer.git
 ```
 
 Navigate into the project directory:
@@ -97,13 +101,15 @@ Always review the preview before confirming file operations.
 - [x] Premium desktop interface and five-page navigation.
 - [x] Persistent application settings and progress indicators.
 - [x] Background scanning and organizing with per-file results.
+- [x] Window geometry persistence, quick rescan, live search and sorting.
+- [x] Clear Session and improved scan and organization feedback.
 - [ ] Standalone Windows executable (.exe).
 
 ## 📌 Project Status
 
-**Current Version:** 1.1
+**Current Version:** 1.2
 
-**Status:** Functional — V1.1 desktop interface and organizer workflow implemented.
+**Status:** Functional — V1.2 quality-of-life improvements implemented.
 
 Windows application packaging is not included in this version.
 

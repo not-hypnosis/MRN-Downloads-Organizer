@@ -1,6 +1,8 @@
 import json
 import os
 import queue
+import re
+import stat
 import threading
 import tkinter as tk
 import webbrowser
@@ -57,6 +59,34 @@ CATEGORY_ICONS = {
     "Code": "</>",
     "Others": "···",
 }
+DEFAULT_GEOMETRY = "1160x780"
+MIN_WINDOW_WIDTH = 900
+MIN_WINDOW_HEIGHT = 640
+
+
+def validated_window_geometry(value, screen_width, screen_height, screen_x=0, screen_y=0):
+    def fallback_geometry():
+        width = max(1, min(1160, screen_width))
+        height = max(1, min(780, screen_height))
+        return "{}x{}".format(width, height)
+
+    match = re.fullmatch(r"(\d+)x(\d+)([+-]\d+)?([+-]\d+)?", str(value))
+    if not match:
+        return fallback_geometry()
+
+    try:
+        width, height = int(match.group(1)), int(match.group(2))
+        x = int(match.group(3) or screen_x)
+        y = int(match.group(4) or screen_y)
+    except ValueError:
+        return fallback_geometry()
+    if width < MIN_WINDOW_WIDTH or height < MIN_WINDOW_HEIGHT:
+        return fallback_geometry()
+    width = min(width, screen_width)
+    height = min(height, screen_height)
+    x = min(max(x, screen_x), max(screen_x, screen_x + screen_width - width))
+    y = min(max(y, screen_y), max(screen_y, screen_y + screen_height - height))
+    return "{}x{}+{}+{}".format(width, height, x, y)
 
 
 def get_config_path():
@@ -87,7 +117,7 @@ def is_drive_root(folder):
 
 def scan_folder(folder, progress_callback=None):
     folder = Path(folder)
-    if not folder.is_dir():
+    if not stat.S_ISDIR(folder.stat().st_mode):
         raise OSError("The selected folder is no longer available.")
     if is_drive_root(folder):
         raise ValueError("For safety, a drive root cannot be scanned.")
@@ -149,7 +179,12 @@ def move_files(folder, planned_files, progress_callback=None):
                 except FileExistsError:
                     destination = unique_destination(destination_folder / source.name)
         except OSError as error:
-            failed.append((Path(source).name, str(error)))
+            message = (
+                "Permission denied: {}".format(error)
+                if isinstance(error, PermissionError)
+                else str(error)
+            )
+            failed.append((Path(source).name, message))
         finally:
             if progress_callback:
                 progress_callback(index)
@@ -168,9 +203,8 @@ class DownloadsOrganizer:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("{}  |  Version 1.1".format(APP_TITLE))
-        self.root.geometry("1160x780")
-        self.root.minsize(900, 640)
+        self.root.title("{}  |  Version 1.2".format(APP_TITLE))
+        self.root.minsize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
         self.root.configure(bg=COLORS["background"])
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -191,8 +225,11 @@ class DownloadsOrganizer:
         self.worker_messages = queue.Queue()
         self.nav_buttons = {}
         self.category_count_labels = {}
+        self.geometry_save_job = None
         self._configure_styles()
+        self._restore_window_geometry()
         self._build_interface()
+        self.root.bind("<Configure>", self._schedule_geometry_save)
 
         remembered = self.settings.get("last_folder", "")
         if self.settings["remember_last_folder"] and remembered:
@@ -216,17 +253,20 @@ class DownloadsOrganizer:
                     self.settings[key] = stored[key]
             if isinstance(stored.get("last_folder"), str):
                 self.settings["last_folder"] = stored["last_folder"]
+            if isinstance(stored.get("window_geometry"), str):
+                self.settings["window_geometry"] = stored["window_geometry"]
             return ""
         except FileNotFoundError:
             return ""
         except (OSError, json.JSONDecodeError, ValueError) as error:
             return "Could not read settings: {}".format(error)
 
-    def _save_settings(self):
+    def _save_settings(self, show_feedback=True):
         path = get_config_path()
         payload = {
             "remember_last_folder": self.remember_folder_var.get(),
             "open_after_organizing": self.open_after_var.get(),
+            "window_geometry": self._current_window_geometry(),
         }
         if payload["remember_last_folder"] and self.folder_var.get():
             payload["last_folder"] = self.folder_var.get()
@@ -235,11 +275,13 @@ class DownloadsOrganizer:
             with path.open("w", encoding="utf-8") as settings_file:
                 json.dump(payload, settings_file, indent=2)
             self.settings.update(payload)
-            self.settings_message_var.set("Preferences saved on this computer.")
-            if not self.busy:
+            if show_feedback:
+                self.settings_message_var.set("Preferences saved on this computer.")
+            if show_feedback and not self.busy:
                 self.status_var.set("Preferences saved.")
         except OSError as error:
-            self.settings_message_var.set("Could not save preferences: {}".format(error))
+            if show_feedback:
+                self.settings_message_var.set("Could not save preferences: {}".format(error))
             self.status_var.set("Could not save preferences: {}".format(error))
 
     def _on_close(self):
@@ -251,8 +293,49 @@ class DownloadsOrganizer:
             )
             return
         if hasattr(self, "remember_folder_var"):
-            self._save_settings()
+            if self.geometry_save_job is not None:
+                self.root.after_cancel(self.geometry_save_job)
+            self._save_settings(show_feedback=False)
         self.root.destroy()
+
+    def _restore_window_geometry(self):
+        screen_x = self.root.winfo_vrootx()
+        screen_y = self.root.winfo_vrooty()
+        screen_width = self.root.winfo_vrootwidth() or self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_vrootheight() or self.root.winfo_screenheight()
+        geometry = validated_window_geometry(
+            self.settings.get("window_geometry", DEFAULT_GEOMETRY),
+            screen_width,
+            screen_height,
+            screen_x,
+            screen_y,
+        )
+        self.root.geometry(geometry)
+
+    def _current_window_geometry(self):
+        geometry = self.root.wm_geometry()
+        if geometry.startswith("!"):
+            return DEFAULT_GEOMETRY
+        return validated_window_geometry(
+            geometry,
+            self.root.winfo_vrootwidth() or self.root.winfo_screenwidth(),
+            self.root.winfo_vrootheight() or self.root.winfo_screenheight(),
+            self.root.winfo_vrootx(),
+            self.root.winfo_vrooty(),
+        )
+
+    def _schedule_geometry_save(self, event):
+        if event.widget is not self.root or not hasattr(self, "remember_folder_var"):
+            return
+        if self.geometry_save_job is not None:
+            self.root.after_cancel(self.geometry_save_job)
+        self.geometry_save_job = self.root.after(700, self._save_geometry)
+
+    def _save_geometry(self):
+        self.geometry_save_job = None
+        if self.busy or not hasattr(self, "remember_folder_var"):
+            return
+        self._save_settings(show_feedback=False)
 
     def _configure_styles(self):
         style = ttk.Style(self.root)
@@ -379,7 +462,7 @@ class DownloadsOrganizer:
         sidebar_footer.pack(side="bottom", fill="x", padx=22, pady=20)
         ttk.Separator(sidebar_footer).pack(fill="x", pady=(0, 12))
         tk.Label(
-            sidebar_footer, text="VERSION 1.1", bg="#131d2b", fg="#74849a",
+            sidebar_footer,             text="VERSION 1.2", bg="#131d2b", fg="#74849a",
             font=("Segoe UI Semibold", 8),
         ).pack(anchor="w")
 
@@ -483,10 +566,15 @@ class DownloadsOrganizer:
             activity, textvariable=self.activity_var, style="Muted.TLabel",
             wraplength=700, justify="left",
         ).grid(row=1, column=0, sticky="nw", pady=(13, 4))
+        activity_actions = ttk.Frame(activity, style="Panel.TFrame")
+        activity_actions.grid(row=2, column=0, sticky="w", pady=(15, 0))
         ttk.Button(
-            activity, text="Go to Organizer", style="Accent.TButton",
+            activity_actions, text="Go to Organizer", style="Accent.TButton",
             command=lambda: self._show_page("Organizer"),
-        ).grid(row=2, column=0, sticky="w", pady=(15, 0))
+        ).pack(side="left")
+        ttk.Button(
+            activity_actions, text="Clear Session", command=self._clear_session,
+        ).pack(side="left", padx=(9, 0))
 
     def _build_organizer(self):
         page = self._new_page("Organizer")
@@ -518,6 +606,10 @@ class DownloadsOrganizer:
             actions, text="Scan folder", command=self._scan, state="disabled"
         )
         self.scan_button.pack(side="left")
+        self.rescan_button = ttk.Button(
+            actions, text="Rescan", command=self._scan, state="disabled"
+        )
+        self.rescan_button.pack(side="left", padx=(8, 0))
         self.preview_button = ttk.Button(
             actions, text="Preview & organize", style="Accent.TButton",
             command=self._show_preview, state="disabled",
@@ -660,7 +752,7 @@ class DownloadsOrganizer:
             font=("Segoe UI Semibold", 25),
         ).grid(row=1, column=0, sticky="w", pady=(8, 3))
         ttk.Label(
-            card, text="Version 1.1  ·  Built with Python and Tkinter",
+            card, text="Version 1.2  ·  Built with Python and Tkinter",
             style="Muted.TLabel",
         ).grid(row=2, column=0, sticky="w", pady=(3, 22))
         ttk.Separator(card).grid(row=3, column=0, sticky="ew", pady=(0, 20))
@@ -752,17 +844,160 @@ class DownloadsOrganizer:
             if failed:
                 self.organizer_tree.insert("", "end", values=("Failed", len(failed), "See status and retry"))
 
-    def _set_folder(self, folder):
-        folder = Path(folder)
-        if not folder.is_dir():
-            messagebox.showerror(APP_TITLE, "That folder could not be found.", parent=self.root)
-            return
-        if is_drive_root(folder):
-            messagebox.showwarning(
-                APP_TITLE, "For safety, a drive root cannot be selected.", parent=self.root
+    def _add_filter_controls(self, parent, refresh):
+        controls = ttk.Frame(parent, style="Panel.TFrame")
+        controls.columnconfigure(1, weight=1)
+        search_var = tk.StringVar()
+        ttk.Label(controls, text="Search", style="Muted.TLabel").grid(
+            row=0, column=0, sticky="w", padx=(0, 8)
+        )
+        search = ttk.Entry(controls, textvariable=search_var)
+        search.grid(row=0, column=1, sticky="ew", padx=(0, 8))
+        sort_var = tk.StringVar(value="Filename")
+        sort = ttk.Combobox(
+            controls, textvariable=sort_var, state="readonly",
+            values=("Filename", "File extension", "File size", "Category"),
+            width=16,
+        )
+        sort.grid(row=0, column=2, padx=(0, 8))
+        ascending = tk.BooleanVar(value=True)
+        direction_button = ttk.Button(controls, text="Ascending")
+        direction_button.grid(row=0, column=3)
+
+        def toggle_direction():
+            ascending.set(not ascending.get())
+            direction_button.configure(
+                text="Ascending" if ascending.get() else "Descending"
             )
+            refresh()
+
+        direction_button.configure(command=toggle_direction)
+        search_var.trace_add("write", lambda *_: refresh())
+        sort.bind("<<ComboboxSelected>>", lambda _event: refresh())
+        return {
+            "frame": controls,
+            "search": search_var,
+            "sort": sort_var,
+            "ascending": ascending,
+        }
+
+    @staticmethod
+    def _sort_records(records, filter_state, filename_key):
+        query = filter_state["search"].get().casefold().strip()
+        visible = [
+            record for record in records
+            if query in filename_key(record).casefold()
+        ]
+        sort_type = filter_state["sort"].get()
+        key_by_type = {
+            "Filename": lambda record: filename_key(record).casefold(),
+            "File extension": lambda record: Path(filename_key(record)).suffix.casefold(),
+            "File size": lambda record: record["size"],
+            "Category": lambda record: record["category"].casefold(),
+        }
+        visible.sort(
+            key=key_by_type[sort_type],
+            reverse=not filter_state["ascending"].get(),
+        )
+        return visible
+
+    @staticmethod
+    def _format_file_size(size):
+        if size < 1024:
+            return "{} B".format(size)
+        if size < 1024 * 1024:
+            return "{:.1f} KB".format(size / 1024)
+        return "{:.1f} MB".format(size / (1024 * 1024))
+
+    def _clear_session(self):
+        if self.busy:
+            self.status_var.set("Wait for the current operation before clearing the session.")
             return
-        self.folder_var.set(str(folder.resolve()))
+        if not messagebox.askyesno(
+            APP_TITLE,
+            "Clear scan statistics, preview data and operation results?\n\n"
+            "Your files and saved preferences will not be changed.",
+            parent=self.root,
+        ):
+            return
+        self.files_by_category = None
+        self.total_files = 0
+        self.ready_files = 0
+        self.last_results = None
+        self.organizer_summary_var.set("Session cleared")
+        self.progress_bar.configure(mode="determinate", maximum=100, value=0)
+        self.progress_text_var.set("Session cleared; no files were changed.")
+        self.activity_var.set("Session data cleared. Your files and preferences are unchanged.")
+        if getattr(self, "results_window", None) is not None:
+            if self.results_window.winfo_exists():
+                self.results_window.destroy()
+            self.results_window = None
+        self.results_button.configure(state="disabled")
+        self.preview_button.configure(state="disabled")
+        self._fill_organizer_tree()
+        self._refresh_metrics()
+        self.status_var.set("Session cleared. Selected folder and preferences retained.")
+
+    def _feedback_for_scan(self, files_by_category):
+        count = sum(len(files) for files in files_by_category.values())
+        if count == 0:
+            return "Folder is empty or contains no eligible files."
+        supported_count = count - len(files_by_category["Others"])
+        if supported_count == 0:
+            return (
+                "No supported file types found; {} file{} categorized as Others.".format(
+                    count, "" if count == 1 else "s"
+                )
+            )
+        return "Scan completed: {} file{} found.".format(
+            count, "" if count == 1 else "s"
+        )
+
+    @staticmethod
+    def _scan_error_message(error):
+        if isinstance(error, PermissionError):
+            return "Permission denied while scanning this folder. Choose a folder you can access."
+        if isinstance(error, FileNotFoundError):
+            return "The selected folder could not be found. Select it again and rescan."
+        if isinstance(error, ValueError):
+            return str(error)
+        return "Could not scan this folder: {}".format(error)
+
+    def _set_folder(self, folder):
+        try:
+            folder = Path(folder)
+            folder_stat = folder.stat()
+            if not stat.S_ISDIR(folder_stat.st_mode):
+                messagebox.showerror(
+                    APP_TITLE,
+                    "The selected location is not an available folder.",
+                    parent=self.root,
+                )
+                return
+            if is_drive_root(folder):
+                messagebox.showwarning(
+                    APP_TITLE,
+                    "For safety, a drive root cannot be selected.",
+                    parent=self.root,
+                )
+                return
+            self.folder_var.set(str(folder.resolve()))
+        except PermissionError:
+            messagebox.showerror(
+                APP_TITLE,
+                "Permission denied. Choose a folder you can access.",
+                parent=self.root,
+            )
+        except FileNotFoundError:
+            messagebox.showerror(
+                APP_TITLE, "The selected folder could not be found.",
+                parent=self.root,
+            )
+        except OSError as error:
+            messagebox.showerror(
+                APP_TITLE, "Could not use that folder: {}".format(error),
+                parent=self.root,
+            )
 
     def _browse(self):
         selected = filedialog.askdirectory(
@@ -795,6 +1030,9 @@ class DownloadsOrganizer:
         self.scan_button.configure(
             state="normal" if self.folder_var.get() and not self.busy else "disabled"
         )
+        self.rescan_button.configure(
+            state="normal" if self.folder_var.get() and not self.busy else "disabled"
+        )
         self.results_button.configure(state="disabled")
         self.open_folder_button.configure(
             state="normal" if self.folder_var.get() else "disabled"
@@ -811,6 +1049,7 @@ class DownloadsOrganizer:
         for button in self.folder_buttons:
             button.configure(state=state)
         self.scan_button.configure(state=state if self.folder_var.get() else "disabled")
+        self.rescan_button.configure(state=state if self.folder_var.get() else "disabled")
         self.preview_button.configure(
             state="disabled" if busy or self.ready_files == 0 else "normal"
         )
@@ -846,9 +1085,11 @@ class DownloadsOrganizer:
                 )
                 self.worker_messages.put(("scan_done", result))
             except (OSError, ValueError) as error:
-                self.worker_messages.put(("scan_error", str(error)))
+                self.worker_messages.put(("scan_error", error))
             except Exception as error:
-                self.worker_messages.put(("scan_error", "Unexpected scan error: {}".format(error)))
+                self.worker_messages.put(
+                    ("scan_error", RuntimeError("Unexpected scan error: {}".format(error)))
+                )
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -861,9 +1102,7 @@ class DownloadsOrganizer:
             for file_path in files
         ]
         if not planned_files:
-            messagebox.showinfo(
-                APP_TITLE, "No files are available to organize.", parent=self.root
-            )
+            messagebox.showinfo(APP_TITLE, self._feedback_for_scan(self.files_by_category), parent=self.root)
             return
 
         dialog = tk.Toplevel(self.root)
@@ -874,11 +1113,21 @@ class DownloadsOrganizer:
         dialog.transient(self.root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
-        dialog.rowconfigure(2, weight=1)
+        dialog.rowconfigure(3, weight=1)
 
         counts = {}
-        for category, _ in planned_files:
+        records = []
+        for category, file_path in planned_files:
             counts[category] = counts.get(category, 0) + 1
+            try:
+                size = file_path.stat().st_size
+            except OSError:
+                size = 0
+            records.append({
+                "category": category,
+                "path": file_path,
+                "size": size,
+            })
         summary = "   ·   ".join(
             "{} {}".format(category, count) for category, count in counts.items()
         )
@@ -886,52 +1135,101 @@ class DownloadsOrganizer:
             dialog, text="Review files to be moved", style="Title.TLabel"
         ).grid(row=0, column=0, sticky="w", padx=22, pady=(20, 4))
         ttk.Label(
+            dialog,
+            text="{} files  ·  {} categories  ·  Destination: {}".format(
+                len(planned_files), len(counts), self.folder_var.get()
+            ),
+            style="Subtitle.TLabel", wraplength=700,
+        ).grid(row=1, column=0, sticky="w", padx=22, pady=(0, 5))
+        ttk.Label(
             dialog, text=summary, style="Subtitle.TLabel", wraplength=700
-        ).grid(row=1, column=0, sticky="w", padx=22, pady=(0, 14))
+        ).grid(row=2, column=0, sticky="w", padx=22, pady=(0, 12))
         table = ttk.Frame(dialog, style="Panel.TFrame", padding=10)
-        table.grid(row=2, column=0, sticky="nsew", padx=22, pady=(0, 16))
+        table.grid(row=3, column=0, sticky="nsew", padx=22, pady=(0, 16))
         table.columnconfigure(0, weight=1)
-        table.rowconfigure(0, weight=1)
+        table.rowconfigure(1, weight=1)
+        filter_state = self._add_filter_controls(table, refresh=lambda: render_rows())
+        filter_state["frame"].grid(row=0, column=0, columnspan=2, sticky="ew", padx=6, pady=(2, 10))
         preview_tree = ttk.Treeview(
-            table, columns=("file", "destination"), show="headings",
+            table, columns=("file", "extension", "size", "destination"), show="headings",
             selectmode="none",
         )
         preview_tree.heading("file", text="FILE")
+        preview_tree.heading("extension", text="EXTENSION")
+        preview_tree.heading("size", text="SIZE", anchor="e")
         preview_tree.heading("destination", text="CATEGORY FOLDER")
-        preview_tree.column("file", width=440)
-        preview_tree.column("destination", width=200, stretch=False)
-        preview_tree.grid(row=0, column=0, sticky="nsew")
+        preview_tree.column("file", width=300)
+        preview_tree.column("extension", width=100, stretch=False)
+        preview_tree.column("size", width=100, anchor="e", stretch=False)
+        preview_tree.column("destination", width=160, stretch=False)
+        preview_tree.grid(row=1, column=0, sticky="nsew")
         preview_scroll = ttk.Scrollbar(
             table, orient="vertical", command=preview_tree.yview
         )
-        preview_scroll.grid(row=0, column=1, sticky="ns")
+        preview_scroll.grid(row=1, column=1, sticky="ns")
         preview_tree.configure(yscrollcommand=preview_scroll.set)
-        for category, file_path in planned_files:
-            preview_tree.insert("", "end", values=(file_path.name, category))
+
+        def render_rows():
+            for item in preview_tree.get_children():
+                preview_tree.delete(item)
+            for record in self._sort_records(
+                records, filter_state, lambda item: item["path"].name
+            ):
+                path = record["path"]
+                preview_tree.insert(
+                    "", "end",
+                    values=(
+                        path.name,
+                        path.suffix.lower() or "(none)",
+                        self._format_file_size(record["size"]),
+                        record["category"],
+                    ),
+                )
+
+        render_rows()
         actions = ttk.Frame(dialog, padding=(22, 0, 22, 20))
-        actions.grid(row=3, column=0, sticky="ew")
+        actions.grid(row=4, column=0, sticky="ew")
         actions.columnconfigure(0, weight=1)
         ttk.Button(actions, text="Cancel", command=dialog.destroy).grid(
             row=0, column=1, padx=(0, 8)
         )
         ttk.Button(
-            actions, text="Confirm & move", style="Accent.TButton",
+            actions,
+            text="Organize {} files".format(len(planned_files)),
+            style="Accent.TButton",
             command=lambda: self._confirm_organization(dialog, planned_files),
         ).grid(row=0, column=2)
 
     def _confirm_organization(self, dialog, planned_files):
         folder = Path(self.folder_var.get())
-        if not folder.is_dir() or is_drive_root(folder):
+        try:
+            is_folder = stat.S_ISDIR(folder.stat().st_mode)
+        except PermissionError:
+            messagebox.showerror(
+                APP_TITLE, "Permission denied for the selected folder.",
+                parent=dialog,
+            )
+            return
+        except OSError:
+            is_folder = False
+        if not is_folder or is_drive_root(folder):
             messagebox.showerror(
                 APP_TITLE, "The selected folder is no longer available.",
                 parent=dialog,
             )
             return
+        category_names = sorted({category for category, _ in planned_files})
         if not messagebox.askyesno(
             APP_TITLE,
-            "Move {} file{} into category folders in:\n\n{}\n\n"
+            "Organize {} file{} across {} categor{}:\n{}\n\n"
+            "Destination folder:\n{}\n\n"
             "Files will not be deleted or overwritten.".format(
-                len(planned_files), "" if len(planned_files) == 1 else "s", folder
+                len(planned_files),
+                "" if len(planned_files) == 1 else "s",
+                len(category_names),
+                "y" if len(category_names) == 1 else "ies",
+                ", ".join(category_names),
+                folder,
             ),
             parent=dialog,
         ):
@@ -996,9 +1294,7 @@ class DownloadsOrganizer:
                     )
                     self.progress_text_var.set("Scan complete")
                     self.activity_var.set(
-                        "Last scan found {} file{} ready to organize.".format(
-                            self.total_files, "" if self.total_files == 1 else "s"
-                        )
+                        self._feedback_for_scan(payload)
                     )
                     self._fill_organizer_tree()
                     self._refresh_metrics()
@@ -1006,12 +1302,15 @@ class DownloadsOrganizer:
                     self.preview_button.configure(
                         state="normal" if self.total_files else "disabled"
                     )
+                    self.status_var.set(self._feedback_for_scan(payload))
                 elif message == "scan_error":
                     self.progress_bar.stop()
                     self.progress_bar.configure(mode="determinate", value=0)
                     self.progress_text_var.set("Scan did not complete")
                     self._set_busy(False)
-                    messagebox.showerror(APP_TITLE, payload, parent=self.root)
+                    friendly_error = self._scan_error_message(payload)
+                    self.status_var.set(friendly_error)
+                    messagebox.showerror(APP_TITLE, friendly_error, parent=self.root)
                 elif message == "refresh_done":
                     self.files_by_category = payload
                     self.total_files = sum(len(files) for files in payload.values())
@@ -1029,6 +1328,18 @@ class DownloadsOrganizer:
                     self.preview_button.configure(
                         state="normal" if self.ready_files else "disabled"
                     )
+                    if failed or skipped:
+                        self.status_var.set(
+                            "Partial completion: {} moved, {} skipped, {} failed.".format(
+                                len(moved), len(skipped), len(failed)
+                            )
+                        )
+                    else:
+                        self.status_var.set(
+                            "Organization completed: {} file{} moved.".format(
+                                len(moved), "" if len(moved) == 1 else "s"
+                            )
+                        )
                 elif message == "refresh_error":
                     self._set_busy(False)
                     self.status_var.set(
@@ -1099,6 +1410,12 @@ class DownloadsOrganizer:
         result.minsize(600, 400)
         result.configure(bg=COLORS["background"])
         result.transient(self.root)
+        self.results_window = result
+        result.bind(
+            "<Destroy>",
+            lambda event: setattr(self, "results_window", None)
+            if event.widget is result else None,
+        )
         result.columnconfigure(0, weight=1)
         result.rowconfigure(2, weight=1)
         processed = len(moved) + len(skipped) + len(failed)
@@ -1117,31 +1434,78 @@ class DownloadsOrganizer:
         table_frame = ttk.Frame(result, style="Panel.TFrame", padding=10)
         table_frame.grid(row=2, column=0, sticky="nsew", padx=22, pady=(0, 16))
         table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
+        table_frame.rowconfigure(1, weight=1)
+        records = []
+        folder = Path(self.folder_var.get())
+        for name, category in moved:
+            path = folder / category / name
+            records.append({
+                "status": "Moved", "name": name, "category": category,
+                "details": category, "path": path,
+            })
+        for name in skipped:
+            records.append({
+                "status": "Skipped", "name": name,
+                "category": categorize_file(Path(name)),
+                "details": "No longer eligible", "path": folder / name,
+            })
+        for name, error in failed:
+            records.append({
+                "status": "Failed", "name": name,
+                "category": categorize_file(Path(name)),
+                "details": error, "path": folder / name,
+            })
+        for record in records:
+            try:
+                record["size"] = record["path"].stat().st_size
+            except OSError:
+                record["size"] = 0
+
+        filter_state = self._add_filter_controls(
+            table_frame, refresh=lambda: render_rows()
+        )
+        filter_state["frame"].grid(
+            row=0, column=0, columnspan=2, sticky="ew", padx=6, pady=(2, 10)
+        )
         results_tree = ttk.Treeview(
-            table_frame, columns=("status", "file", "details"),
+            table_frame, columns=("status", "file", "extension", "size", "details"),
             show="headings", selectmode="none",
         )
         results_tree.heading("status", text="STATUS")
         results_tree.heading("file", text="FILE")
+        results_tree.heading("extension", text="EXTENSION")
+        results_tree.heading("size", text="SIZE", anchor="e")
         results_tree.heading("details", text="DETAILS")
         results_tree.column("status", width=95, stretch=False)
-        results_tree.column("file", width=250)
-        results_tree.column("details", width=250)
-        results_tree.grid(row=0, column=0, sticky="nsew")
+        results_tree.column("file", width=220)
+        results_tree.column("extension", width=90, stretch=False)
+        results_tree.column("size", width=90, anchor="e", stretch=False)
+        results_tree.column("details", width=210)
+        results_tree.grid(row=1, column=0, sticky="nsew")
         results_scroll = ttk.Scrollbar(
             table_frame, orient="vertical", command=results_tree.yview
         )
-        results_scroll.grid(row=0, column=1, sticky="ns")
+        results_scroll.grid(row=1, column=1, sticky="ns")
         results_tree.configure(yscrollcommand=results_scroll.set)
-        for name, category in moved:
-            results_tree.insert("", "end", values=("Moved", name, category))
-        for name in skipped:
-            results_tree.insert(
-                "", "end", values=("Skipped", name, "No longer eligible")
-            )
-        for name, error in failed:
-            results_tree.insert("", "end", values=("Failed", name, error))
+
+        def render_rows():
+            for item in results_tree.get_children():
+                results_tree.delete(item)
+            for record in self._sort_records(
+                records, filter_state, lambda item: item["name"]
+            ):
+                results_tree.insert(
+                    "", "end",
+                    values=(
+                        record["status"],
+                        record["name"],
+                        Path(record["name"]).suffix.lower() or "(none)",
+                        self._format_file_size(record["size"]),
+                        record["details"],
+                    ),
+                )
+
+        render_rows()
 
         ttk.Button(
             result, text="Close", command=result.destroy,
@@ -1151,7 +1515,16 @@ class DownloadsOrganizer:
         if not self.folder_var.get():
             return
         folder = Path(self.folder_var.get())
-        if not folder.is_dir():
+        try:
+            if not stat.S_ISDIR(folder.stat().st_mode):
+                raise FileNotFoundError("Selected path is not a folder.")
+        except PermissionError:
+            messagebox.showerror(
+                APP_TITLE, "Permission denied for the selected folder.",
+                parent=self.root,
+            )
+            return
+        except OSError:
             messagebox.showerror(
                 APP_TITLE, "The selected folder could not be found.", parent=self.root
             )
