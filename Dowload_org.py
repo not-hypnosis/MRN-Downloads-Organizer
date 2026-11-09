@@ -3,6 +3,7 @@ import os
 import queue
 import re
 import stat
+import sys
 import threading
 import tkinter as tk
 import webbrowser
@@ -11,7 +12,9 @@ from tkinter import filedialog, messagebox, ttk
 
 
 APP_TITLE = "MRN Downloads Organizer"
-APP_FILE = Path(__file__).resolve()
+APP_FILE = Path(
+    sys.executable if getattr(sys, "frozen", False) else __file__
+).resolve()
 COLORS = {
     "background": "#101722",
     "panel": "#182333",
@@ -203,7 +206,7 @@ class DownloadsOrganizer:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("{}  |  Version 1.2".format(APP_TITLE))
+        self.root.title("{}  |  Version 2.0".format(APP_TITLE))
         self.root.minsize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
         self.root.configure(bg=COLORS["background"])
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -800,7 +803,7 @@ class DownloadsOrganizer:
             font=("Segoe UI Semibold", 26),
         ).grid(row=1, column=0, sticky="w", pady=(8, 3))
         ttk.Label(
-            card, text="Version 1.2  ·  Built with Python and Tkinter",
+            card, text="Version 2.0  ·  Built with Python and Tkinter",
             style="Muted.TLabel",
         ).grid(row=2, column=0, sticky="w", pady=(3, 22))
         ttk.Separator(card).grid(row=3, column=0, sticky="ew", pady=(0, 20))
