@@ -365,7 +365,7 @@ class DownloadsOrganizer:
             background=COLORS["background"], foreground=COLORS["text"],
         )
         style.configure(
-            "Section.TLabel", font=("Segoe UI Semibold", 13),
+            "Section.TLabel", font=("Segoe UI Semibold", 12),
             background=COLORS["panel"], foreground=COLORS["text"],
         )
         style.configure(
@@ -373,31 +373,68 @@ class DownloadsOrganizer:
             background=COLORS["background"], foreground=COLORS["muted"],
         )
         style.configure(
-            "Metric.TLabel", font=("Segoe UI Semibold", 24),
+            "Eyebrow.TLabel", font=("Segoe UI Semibold", 8),
+            background=COLORS["panel"], foreground=COLORS["muted"],
+        )
+        style.configure(
+            "Metric.TLabel", font=("Segoe UI Semibold", 26),
             background=COLORS["panel"], foreground=COLORS["text"],
         )
         style.configure(
-            "TButton", padding=(12, 9), background=COLORS["panel_light"],
-            foreground=COLORS["text"], borderwidth=0, focusthickness=0,
+            "TButton", padding=(12, 8), background=COLORS["panel_light"],
+            foreground=COLORS["text"], borderwidth=0, focusthickness=1,
+            focuscolor=COLORS["accent"],
         )
         style.map(
             "TButton",
-            background=[("active", "#2b3b50"), ("disabled", COLORS["panel_light"])],
+            background=[
+                ("pressed", COLORS["accent_soft"]),
+                ("active", "#2b3b50"),
+                ("disabled", COLORS["panel_light"]),
+            ],
             foreground=[("disabled", "#748196")],
         )
         style.configure(
-            "Accent.TButton", padding=(15, 10), background=COLORS["accent"],
+            "Accent.TButton", padding=(15, 9), background=COLORS["accent"],
             foreground="#ffffff", font=("Segoe UI Semibold", 10), borderwidth=0,
         )
-        style.map("Accent.TButton", background=[("active", COLORS["accent_hover"])])
+        style.map(
+            "Accent.TButton",
+            background=[
+                ("pressed", COLORS["accent_soft"]),
+                ("active", COLORS["accent_hover"]),
+                ("disabled", COLORS["panel_light"]),
+            ],
+            foreground=[("disabled", "#748196")],
+        )
+        style.configure(
+            "Nav.TButton", padding=(14, 10), anchor="w",
+            background="#131d2b", foreground=COLORS["muted"],
+            font=("Segoe UI Semibold", 10), borderwidth=0, focusthickness=0,
+        )
+        style.map(
+            "Nav.TButton",
+            background=[("active", COLORS["accent_soft"])],
+            foreground=[("active", COLORS["text"])],
+        )
+        style.configure(
+            "NavActive.TButton", padding=(14, 10), anchor="w",
+            background=COLORS["accent_soft"], foreground=COLORS["text"],
+            font=("Segoe UI Semibold", 10), borderwidth=0, focusthickness=0,
+        )
+        style.map(
+            "NavActive.TButton",
+            background=[("active", COLORS["accent_soft"])],
+            foreground=[("active", COLORS["text"])],
+        )
         style.configure(
             "Treeview", background=COLORS["panel"], fieldbackground=COLORS["panel"],
             foreground=COLORS["text"], rowheight=34, borderwidth=0,
         )
         style.configure(
             "Treeview.Heading", background=COLORS["panel_light"],
-            foreground=COLORS["muted"], font=("Segoe UI Semibold", 9),
-            padding=(8, 9), borderwidth=0,
+            foreground=COLORS["muted"], font=("Segoe UI Semibold", 8),
+            padding=(9, 8), borderwidth=0,
         )
         style.map(
             "Treeview",
@@ -446,14 +483,10 @@ class DownloadsOrganizer:
             font=("Segoe UI Semibold", 8),
         ).pack(anchor="w", padx=22, pady=(0, 10))
         for label, icon in self.NAV_ITEMS:
-            button = tk.Button(
+            button = ttk.Button(
                 sidebar, text="  {}   {}".format(icon, label),
                 command=lambda page=label: self._show_page(page),
-                anchor="w", relief="flat", borderwidth=0, cursor="hand2",
-                padx=13, pady=11, bg="#131d2b", fg=COLORS["muted"],
-                activebackground=COLORS["accent_soft"],
-                activeforeground=COLORS["text"],
-                font=("Segoe UI Semibold", 10),
+                style="Nav.TButton", cursor="hand2",
             )
             button.pack(fill="x", padx=12, pady=2)
             self.nav_buttons[label] = button
@@ -462,7 +495,7 @@ class DownloadsOrganizer:
         sidebar_footer.pack(side="bottom", fill="x", padx=22, pady=20)
         ttk.Separator(sidebar_footer).pack(fill="x", pady=(0, 12))
         tk.Label(
-            sidebar_footer,             text="VERSION 1.2", bg="#131d2b", fg="#74849a",
+            sidebar_footer, text="VERSION 1.2", bg="#131d2b", fg="#74849a",
             font=("Segoe UI Semibold", 8),
         ).pack(anchor="w")
 
@@ -508,11 +541,11 @@ class DownloadsOrganizer:
         return frame
 
     def _build_metric_card(self, parent, title, variable, note, column):
-        card = ttk.Frame(parent, style="Panel.TFrame", padding=(18, 16))
+        card = ttk.Frame(parent, style="Panel.TFrame", padding=(20, 18))
         card.grid(row=0, column=column, sticky="nsew", padx=(0, 12 if column < 2 else 0))
-        ttk.Label(card, text=title.upper(), style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(card, text=title.upper(), style="Eyebrow.TLabel").pack(anchor="w")
         ttk.Label(card, textvariable=variable, style="Metric.TLabel").pack(
-            anchor="w", pady=(11, 3)
+            anchor="w", pady=(8, 2)
         )
         ttk.Label(card, text=note, style="Muted.TLabel").pack(anchor="w")
         return card
@@ -540,9 +573,9 @@ class DownloadsOrganizer:
             "With detected files", 2
         )
 
-        folder_card = ttk.Frame(page, style="Panel.TFrame", padding=(20, 16))
-        folder_card.grid(row=1, column=0, sticky="ew", pady=14)
-        ttk.Label(folder_card, text="CURRENT FOLDER", style="Muted.TLabel").pack(anchor="w")
+        folder_card = ttk.Frame(page, style="Panel.TFrame", padding=(20, 17))
+        folder_card.grid(row=1, column=0, sticky="ew", pady=(14, 16))
+        ttk.Label(folder_card, text="CURRENT FOLDER", style="Eyebrow.TLabel").pack(anchor="w")
         self.dashboard_folder_var = tk.StringVar(value="No folder selected")
         ttk.Label(
             folder_card, textvariable=self.dashboard_folder_var, style="Panel.TLabel",
@@ -553,7 +586,7 @@ class DownloadsOrganizer:
         bottom.grid(row=2, column=0, sticky="nsew")
         bottom.columnconfigure(0, weight=1)
         bottom.rowconfigure(0, weight=1)
-        activity = ttk.Frame(bottom, style="Panel.TFrame", padding=(20, 18))
+        activity = ttk.Frame(bottom, style="Panel.TFrame", padding=(22, 20))
         activity.grid(row=0, column=0, sticky="nsew")
         activity.columnconfigure(0, weight=1)
         ttk.Label(activity, text="Recent activity", style="Section.TLabel").grid(
@@ -564,8 +597,8 @@ class DownloadsOrganizer:
         )
         ttk.Label(
             activity, textvariable=self.activity_var, style="Muted.TLabel",
-            wraplength=700, justify="left",
-        ).grid(row=1, column=0, sticky="nw", pady=(13, 4))
+            wraplength=740, justify="left",
+        ).grid(row=1, column=0, sticky="nw", pady=(10, 4))
         activity_actions = ttk.Frame(activity, style="Panel.TFrame")
         activity_actions.grid(row=2, column=0, sticky="w", pady=(15, 0))
         ttk.Button(
@@ -584,7 +617,7 @@ class DownloadsOrganizer:
         folder_card = ttk.Frame(page, style="Panel.TFrame", padding=(18, 16))
         folder_card.grid(row=0, column=0, sticky="ew")
         folder_card.columnconfigure(0, weight=1)
-        ttk.Label(folder_card, text="FOLDER TO ORGANIZE", style="Muted.TLabel").grid(
+        ttk.Label(folder_card, text="FOLDER TO ORGANIZE", style="Eyebrow.TLabel").grid(
             row=0, column=0, columnspan=3, sticky="w", pady=(0, 9)
         )
         self.folder_entry = ttk.Entry(
@@ -659,9 +692,9 @@ class DownloadsOrganizer:
         self.organizer_tree.heading("category", text="CATEGORY")
         self.organizer_tree.heading("count", text="FILES", anchor="e")
         self.organizer_tree.heading("result", text="LATEST RESULT")
-        self.organizer_tree.column("category", width=230)
-        self.organizer_tree.column("count", width=90, anchor="e", stretch=False)
-        self.organizer_tree.column("result", width=300)
+        self.organizer_tree.column("category", width=170)
+        self.organizer_tree.column("count", width=72, anchor="e", stretch=False)
+        self.organizer_tree.column("result", width=210)
         self.organizer_tree.grid(row=1, column=0, sticky="nsew")
         scroll = ttk.Scrollbar(
             results_card, orient="vertical", command=self.organizer_tree.yview
@@ -672,19 +705,22 @@ class DownloadsOrganizer:
 
     def _build_categories(self):
         page = self._new_page("Categories")
-        page.columnconfigure((0, 1, 2), weight=1, uniform="category")
+        page.columnconfigure(tuple(range(6)), weight=1, uniform="category")
         page.rowconfigure((1, 2, 3, 4), weight=1, uniform="category")
         ttk.Label(
             page, text="Files are grouped by their extension. Unsupported types go to Others.",
             style="Subtitle.TLabel", wraplength=800,
-        ).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 12))
+        ).grid(row=0, column=0, columnspan=6, sticky="w", pady=(0, 14))
         for index, category in enumerate(CATEGORIES):
             row = index // 3 + 1
-            column = index % 3
-            card = ttk.Frame(page, style="Panel.TFrame", padding=(15, 13))
+            if row == 4:
+                column = 1 + (index - 9) * 2
+            else:
+                column = (index % 3) * 2
+            card = ttk.Frame(page, style="Panel.TFrame", padding=(16, 14))
             card.grid(
                 row=row, column=column, sticky="nsew",
-                padx=(0, 10 if column < 2 else 0), pady=(0, 10),
+                columnspan=2, padx=6, pady=(0, 10),
             )
             card.columnconfigure(1, weight=1)
             ttk.Label(
@@ -697,13 +733,25 @@ class DownloadsOrganizer:
             count_var = tk.StringVar(value="0 files detected")
             self.category_count_labels[category] = count_var
             ttk.Label(card, textvariable=count_var, style="Muted.TLabel").grid(
-                row=1, column=1, sticky="w", pady=(4, 0)
+                row=1, column=1, sticky="w", pady=(3, 0)
             )
+            extensions = sorted(CATEGORIES[category])
+            if extensions:
+                shown_extensions = " · ".join(ext.upper() for ext in extensions[:4])
+                if len(extensions) > 4:
+                    shown_extensions += "  +{}".format(len(extensions) - 4)
+                type_description = shown_extensions
+            else:
+                type_description = "Any other file type"
+            ttk.Label(
+                card, text=type_description, style="Muted.TLabel",
+                font=("Segoe UI", 8),
+            ).grid(row=2, column=1, sticky="w", pady=(5, 0))
 
     def _build_settings(self):
         page = self._new_page("Settings")
         page.rowconfigure(1, weight=1)
-        card = ttk.Frame(page, style="Panel.TFrame", padding=(22, 22))
+        card = ttk.Frame(page, style="Panel.TFrame", padding=(26, 24))
         card.grid(row=0, column=0, sticky="new")
         card.columnconfigure(0, weight=1)
         ttk.Label(card, text="Preferences", style="Section.TLabel").grid(
@@ -713,7 +761,7 @@ class DownloadsOrganizer:
             card,
             text="Choose what the organizer remembers and does after a successful run.",
             style="Muted.TLabel", wraplength=650,
-        ).grid(row=1, column=0, sticky="w", pady=(7, 20))
+        ).grid(row=1, column=0, sticky="w", pady=(7, 22))
         self.remember_folder_var = tk.BooleanVar(
             value=self.settings["remember_last_folder"]
         )
@@ -723,7 +771,7 @@ class DownloadsOrganizer:
         ttk.Checkbutton(
             card, text="Remember the last selected folder",
             variable=self.remember_folder_var, command=self._save_settings,
-        ).grid(row=2, column=0, sticky="w", pady=(0, 14))
+        ).grid(row=2, column=0, sticky="w", pady=(0, 16))
         ttk.Checkbutton(
             card, text="Open the folder after organizing",
             variable=self.open_after_var, command=self._save_settings,
@@ -740,7 +788,7 @@ class DownloadsOrganizer:
     def _build_about(self):
         page = self._new_page("About")
         page.rowconfigure(0, weight=1)
-        card = ttk.Frame(page, style="Panel.TFrame", padding=(30, 30))
+        card = ttk.Frame(page, style="Panel.TFrame", padding=(32, 30))
         card.grid(row=0, column=0, sticky="nsew")
         card.columnconfigure(0, weight=1)
         ttk.Label(
@@ -749,7 +797,7 @@ class DownloadsOrganizer:
         ).grid(row=0, column=0, sticky="w")
         ttk.Label(
             card, text="Downloads Organizer", style="Panel.TLabel",
-            font=("Segoe UI Semibold", 25),
+            font=("Segoe UI Semibold", 26),
         ).grid(row=1, column=0, sticky="w", pady=(8, 3))
         ttk.Label(
             card, text="Version 1.2  ·  Built with Python and Tkinter",
@@ -781,10 +829,7 @@ class DownloadsOrganizer:
         self.pages[page_name].tkraise()
         for name, button in self.nav_buttons.items():
             active = name == page_name
-            button.configure(
-                bg=COLORS["accent_soft"] if active else "#131d2b",
-                fg=COLORS["text"] if active else COLORS["muted"],
-            )
+            button.configure(style="NavActive.TButton" if active else "Nav.TButton")
         self._refresh_header_status()
 
     def _refresh_header_status(self):
@@ -848,37 +893,51 @@ class DownloadsOrganizer:
         controls = ttk.Frame(parent, style="Panel.TFrame")
         controls.columnconfigure(1, weight=1)
         search_var = tk.StringVar()
-        ttk.Label(controls, text="Search", style="Muted.TLabel").grid(
+        ttk.Label(controls, text="Filter filename", style="Muted.TLabel").grid(
             row=0, column=0, sticky="w", padx=(0, 8)
         )
         search = ttk.Entry(controls, textvariable=search_var)
         search.grid(row=0, column=1, sticky="ew", padx=(0, 8))
         sort_var = tk.StringVar(value="Filename")
+        ttk.Label(controls, text="Sort by", style="Muted.TLabel").grid(
+            row=0, column=2, sticky="e", padx=(0, 7)
+        )
         sort = ttk.Combobox(
             controls, textvariable=sort_var, state="readonly",
             values=("Filename", "File extension", "File size", "Category"),
             width=16,
         )
-        sort.grid(row=0, column=2, padx=(0, 8))
+        sort.grid(row=0, column=3, padx=(0, 8))
         ascending = tk.BooleanVar(value=True)
-        direction_button = ttk.Button(controls, text="Ascending")
-        direction_button.grid(row=0, column=3)
+        direction_button = ttk.Button(controls, text="Ascending ↑")
+        direction_button.grid(row=0, column=4)
 
         def toggle_direction():
             ascending.set(not ascending.get())
             direction_button.configure(
-                text="Ascending" if ascending.get() else "Descending"
+                text="Ascending ↑" if ascending.get() else "Descending ↓"
             )
             refresh()
 
         direction_button.configure(command=toggle_direction)
         search_var.trace_add("write", lambda *_: refresh())
         sort.bind("<<ComboboxSelected>>", lambda _event: refresh())
+        match_var = tk.StringVar(value="")
+        ttk.Label(
+            controls,
+            text="Search filters filenames only; sorting changes display order.",
+            style="Muted.TLabel", font=("Segoe UI", 8),
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(7, 0))
+        ttk.Label(
+            controls, textvariable=match_var, style="Muted.TLabel",
+            font=("Segoe UI", 8),
+        ).grid(row=1, column=3, columnspan=2, sticky="e", pady=(7, 0))
         return {
             "frame": controls,
             "search": search_var,
             "sort": sort_var,
             "ascending": ascending,
+            "match_count": match_var,
         }
 
     @staticmethod
@@ -1158,10 +1217,10 @@ class DownloadsOrganizer:
         preview_tree.heading("extension", text="EXTENSION")
         preview_tree.heading("size", text="SIZE", anchor="e")
         preview_tree.heading("destination", text="CATEGORY FOLDER")
-        preview_tree.column("file", width=300)
-        preview_tree.column("extension", width=100, stretch=False)
-        preview_tree.column("size", width=100, anchor="e", stretch=False)
-        preview_tree.column("destination", width=160, stretch=False)
+        preview_tree.column("file", width=230)
+        preview_tree.column("extension", width=80, stretch=False)
+        preview_tree.column("size", width=85, anchor="e", stretch=False)
+        preview_tree.column("destination", width=145, stretch=False)
         preview_tree.grid(row=1, column=0, sticky="nsew")
         preview_scroll = ttk.Scrollbar(
             table, orient="vertical", command=preview_tree.yview
@@ -1172,9 +1231,13 @@ class DownloadsOrganizer:
         def render_rows():
             for item in preview_tree.get_children():
                 preview_tree.delete(item)
-            for record in self._sort_records(
+            visible = self._sort_records(
                 records, filter_state, lambda item: item["path"].name
-            ):
+            )
+            filter_state["match_count"].set(
+                "Showing {} of {}".format(len(visible), len(records))
+            )
+            for record in visible:
                 path = record["path"]
                 preview_tree.insert(
                     "", "end",
@@ -1184,6 +1247,11 @@ class DownloadsOrganizer:
                         self._format_file_size(record["size"]),
                         record["category"],
                     ),
+                )
+            if not visible:
+                preview_tree.insert(
+                    "", "end",
+                    values=("No files match this filename filter.", "", "", ""),
                 )
 
         render_rows()
@@ -1287,11 +1355,7 @@ class DownloadsOrganizer:
                     self.total_files = sum(len(files) for files in payload.values())
                     self.ready_files = self.total_files
                     self.last_results = None
-                    self.organizer_summary_var.set(
-                        "{} file{} scanned".format(
-                            self.total_files, "" if self.total_files == 1 else "s"
-                        )
-                    )
+                    self.organizer_summary_var.set(self._feedback_for_scan(payload))
                     self.progress_text_var.set("Scan complete")
                     self.activity_var.set(
                         self._feedback_for_scan(payload)
@@ -1476,11 +1540,11 @@ class DownloadsOrganizer:
         results_tree.heading("extension", text="EXTENSION")
         results_tree.heading("size", text="SIZE", anchor="e")
         results_tree.heading("details", text="DETAILS")
-        results_tree.column("status", width=95, stretch=False)
-        results_tree.column("file", width=220)
-        results_tree.column("extension", width=90, stretch=False)
-        results_tree.column("size", width=90, anchor="e", stretch=False)
-        results_tree.column("details", width=210)
+        results_tree.column("status", width=82, stretch=False)
+        results_tree.column("file", width=190)
+        results_tree.column("extension", width=76, stretch=False)
+        results_tree.column("size", width=78, anchor="e", stretch=False)
+        results_tree.column("details", width=180)
         results_tree.grid(row=1, column=0, sticky="nsew")
         results_scroll = ttk.Scrollbar(
             table_frame, orient="vertical", command=results_tree.yview
@@ -1491,9 +1555,13 @@ class DownloadsOrganizer:
         def render_rows():
             for item in results_tree.get_children():
                 results_tree.delete(item)
-            for record in self._sort_records(
+            visible = self._sort_records(
                 records, filter_state, lambda item: item["name"]
-            ):
+            )
+            filter_state["match_count"].set(
+                "Showing {} of {}".format(len(visible), len(records))
+            )
+            for record in visible:
                 results_tree.insert(
                     "", "end",
                     values=(
@@ -1503,6 +1571,11 @@ class DownloadsOrganizer:
                         self._format_file_size(record["size"]),
                         record["details"],
                     ),
+                )
+            if not visible:
+                results_tree.insert(
+                    "", "end",
+                    values=("", "No files match this filename filter.", "", "", ""),
                 )
 
         render_rows()

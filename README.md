@@ -1,6 +1,6 @@
 # MRN Downloads Organizer
 
-**Version 1.2 — Quality-of-Life Improvements**
+**Version 1.3 — UI/UX Polish & Usability Improvements**
 
 A lightweight Windows desktop utility that automatically organizes messy folders by sorting files into categorized directories based on their extensions.
 
@@ -26,6 +26,12 @@ Built with Python's standard library and Tkinter, this application provides a po
 - **Persistent Preferences** — Save the last-folder and open-after-organizing options, plus window size and position, in a JSON settings file in the Windows user application-data directory.
 - **Clear Session** — Clear scan statistics, preview data and operation results after confirmation, without changing files or saved preferences.
 - **Clear Feedback** — Get scan summaries, empty-folder and unsupported-file notices, organization completion status and partial-failure counts.
+- **Refined User Interface** — Consistent typography, spacing, alignment, buttons and hover states across the application.
+- **Improved Dashboard** — Clearer metric-card hierarchy and a more readable recent-activity summary.
+- **Polished Organizer Workspace** — Refined folder and action controls, with consistent preview and results presentation.
+- **Category Clarity** — Balanced cards for all 11 categories, including supported-extension descriptions and detected file counts.
+- **Improved Search and Empty States** — Clearer filter and sort controls, live match counts, and readable messages when no files match.
+- **Refined Settings and About Pages** — Improved spacing, alignment and typography consistent with the rest of the application.
 - **Duplicate Protection** — Prevent accidental overwriting by generating unique filenames.
 - **Safe File Handling** — Never delete files or recursively process subdirectories.
 
@@ -43,7 +49,7 @@ Built with Python's standard library and Tkinter, this application provides a po
 | Audio | MP3, WAV, FLAC, AAC |
 | Installers | EXE, MSI |
 | Code | C, CPP, PY, JS, TS, HTML, CSS |
-| Others | Unsupported extensions |
+| Others | Unsupported or missing extensions |
 
 ## 🛠️ Technology Stack
 
@@ -103,15 +109,16 @@ Always review the preview before confirming file operations.
 - [x] Background scanning and organizing with per-file results.
 - [x] Window geometry persistence, quick rescan, live search and sorting.
 - [x] Clear Session and improved scan and organization feedback.
-- [ ] Standalone Windows executable (.exe).
+- [x] V1.3 visual refinement, category clarity and improved search and empty states.
+- [ ] **V2.0 — Final stable release with a standalone Windows executable (.exe).**
 
 ## 📌 Project Status
 
-**Current Version:** 1.2
+**Current Version:** 1.3
 
-**Status:** Functional — V1.2 quality-of-life improvements implemented.
+**Status:** Functional — V1.3 UI/UX and usability improvements implemented.
 
-Windows application packaging is not included in this version.
+A standalone Windows executable is planned for the V2.0 final stable release and is not included in this version.
 
 ---
 
