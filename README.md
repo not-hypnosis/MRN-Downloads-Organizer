@@ -1,39 +1,35 @@
-# MRN Downloads Organizer
+# 📁 MRN Downloads Organizer
 
-**Version 1.3 — UI/UX Polish & Usability Improvements**
+**Version 2.0 — Final Stable Release 🚀**
 
 A lightweight Windows desktop utility that automatically organizes messy folders by sorting files into categorized directories based on their extensions.
 
-Built with Python's standard library and Tkinter, this application provides a polished dark-themed desktop interface for managing files without manually sorting them.
+Built with Python's standard library and Tkinter, MRN Downloads Organizer provides a polished dark-themed desktop interface for managing files without manually sorting them.
+
+Now featuring a **standalone Windows executable (.exe)**, so you can use the application without installing Python!
 
 ## ✨ Features
 
-- **Premium Dark Interface** — A clean, modern desktop experience with a dark navy palette and blue accents.
-- **Five Navigation Pages** — Dashboard, Organizer, Categories, Settings and About.
-- **Dashboard** — View scanned and ready-to-organize file totals, detected categories, the selected folder and recent activity.
-- **Organizer Workspace** — Select a folder, use the Downloads shortcut, scan files and review organization results.
-- **Quick Rescan** — Rescan the currently selected folder without selecting it again.
-- **Automatic File Categorization** — Sort files into supported categories based on their extensions.
-- **Downloads Shortcut** — Quickly access the Windows Downloads directory.
-- **Category Overview** — See supported categories and the detected file count for each.
-- **Organization Preview** — Review the files and destinations before confirming any moves.
-- **Live Search and Sorting** — Filter preview and operation results by filename as you type; search is case-insensitive. Sort by filename, extension, file size or category in ascending or descending order.
-- **Organization Confirmation Summary** — Before moving files, review the number of files, categories involved and the destination folder.
-- **Background Work** — Scanning and organizing run in the background to keep the interface responsive.
-- **Progress Indicator** — Follow scan and organization progress.
-- **Per-file Results** — Review successfully moved, skipped and failed files.
-- **Open Organized Folder** — Open the selected folder after organizing, if enabled in Settings.
-- **Persistent Preferences** — Save the last-folder and open-after-organizing options, plus window size and position, in a JSON settings file in the Windows user application-data directory.
-- **Clear Session** — Clear scan statistics, preview data and operation results after confirmation, without changing files or saved preferences.
-- **Clear Feedback** — Get scan summaries, empty-folder and unsupported-file notices, organization completion status and partial-failure counts.
-- **Refined User Interface** — Consistent typography, spacing, alignment, buttons and hover states across the application.
-- **Improved Dashboard** — Clearer metric-card hierarchy and a more readable recent-activity summary.
-- **Polished Organizer Workspace** — Refined folder and action controls, with consistent preview and results presentation.
-- **Category Clarity** — Balanced cards for all 11 categories, including supported-extension descriptions and detected file counts.
-- **Improved Search and Empty States** — Clearer filter and sort controls, live match counts, and readable messages when no files match.
-- **Refined Settings and About Pages** — Improved spacing, alignment and typography consistent with the rest of the application.
-- **Duplicate Protection** — Prevent accidental overwriting by generating unique filenames.
-- **Safe File Handling** — Never delete files or recursively process subdirectories.
+- **🎨 Premium Dark Interface** — A clean, modern desktop experience with a dark navy palette and blue accents.
+- **🧭 Five Navigation Pages** — Dashboard, Organizer, Categories, Settings and About.
+- **📊 Interactive Dashboard** — View scanned and ready-to-organize file totals, detected categories, the selected folder and recent activity.
+- **📂 Organizer Workspace** — Select a folder, use the Downloads shortcut, scan files and review organization results.
+- **⚡ Quick Rescan** — Rescan the currently selected folder without selecting it again.
+- **🗂️ Automatic File Categorization** — Sort files into supported categories based on their extensions.
+- **📥 Downloads Shortcut** — Quickly access the Windows Downloads directory.
+- **📋 Category Overview** — See supported categories and the detected file count for each.
+- **👀 Organization Preview** — Review files and their destinations before confirming any moves.
+- **🔎 Live Search and Sorting** — Filter preview and operation results by filename as you type. Sort by filename, extension, file size or category in ascending or descending order.
+- **✅ Organization Confirmation Summary** — Review the number of files, categories involved and destination folder before moving files.
+- **⚙️ Background Processing** — Scanning and organizing run in the background to keep the interface responsive.
+- **📈 Progress Indicator** — Follow scan and organization progress.
+- **📝 Per-file Results** — Review successfully moved, skipped and failed files.
+- **📁 Open Organized Folder** — Open the selected folder after organizing, if enabled in Settings.
+- **💾 Persistent Preferences** — Save the last-folder and open-after-organizing options, plus window size and position, in a JSON settings file in the Windows user application-data directory.
+- **🧹 Clear Session** — Clear scan statistics, preview data and operation results after confirmation, without changing files or saved preferences.
+- **🔔 Clear Feedback** — Get scan summaries, empty-folder and unsupported-file notices, organization completion status and partial-failure counts.
+- **🛡️ Duplicate Protection** — Prevent accidental overwriting by generating unique filenames.
+- **🔒 Safe File Handling** — Never delete files or recursively process subdirectories.
 
 ## 📂 Supported Categories
 
@@ -53,19 +49,34 @@ Built with Python's standard library and Tkinter, this application provides a po
 
 ## 🛠️ Technology Stack
 
-- Python 3
-- Tkinter / ttk
+- **Language:** Python 3
+- **GUI Framework:** Tkinter / ttk
+- **Packaging:** PyInstaller
+- **Icon:** Custom MRN application icon
 
-The application uses Python's standard library only. No external dependencies are required.
+The application itself uses Python's standard library only. No third-party runtime dependencies are required.
 
 ## 🚀 Getting Started
 
-### Requirements
+MRN Downloads Organizer V2.0 supports two ways to run the application.
 
-- Windows 10 or Windows 11
-- Python 3 installed
+### 🖥️ Option 1 — Standalone Windows Executable
 
-### Run Locally
+The standalone executable is the easiest way to use the application.
+
+1. Obtain the `MRN Downloads Organizer.exe` file.
+2. Run the executable.
+3. Select a folder and start organizing!
+
+**Requirements:**
+- Windows 10 or Windows 11.
+- No Python installation required.
+
+### 💻 Option 2 — Run from Source
+
+**Requirements:**
+- Windows 10 or Windows 11.
+- Python 3 installed.
 
 Clone the repository:
 
@@ -85,20 +96,45 @@ Run the application:
 python Dowload_org.py
 ```
 
+## 📦 Building the Standalone EXE
+
+To build your own standalone Windows executable from the source code:
+
+Install PyInstaller:
+
+```bash
+python -m pip install pyinstaller
+```
+
+Build the application:
+
+```bash
+python -m PyInstaller --noconfirm --clean --onefile --windowed --icon=MRN.ico --name "MRN Downloads Organizer" Dowload_org.py
+```
+
+After a successful build, the executable will be available inside:
+
+```text
+dist/
+└── MRN Downloads Organizer.exe
+```
+
+**Note:** PyInstaller is a build-time dependency only. It is not required to run the packaged application. Pillow was used as a development utility to generate the icon and is not required at runtime or for rebuilding when the provided `.ico` file is used.
+
 ## 🔒 Safety
 
 MRN Downloads Organizer operates only on a folder explicitly selected by the user. It does not automatically select or organize a drive or drive root.
 
-- No automatic drive-wide organization or drive-root processing.
-- Scanning is limited to the immediate contents of the selected folder; subfolders are not processed or moved.
-- No file deletion.
-- No overwriting existing files.
-- When a destination filename already exists, a unique filename is generated instead.
-- The application source file and temporary files are excluded from scanning and organization.
+- 🚫 No automatic drive-wide organization or drive-root processing.
+- 📁 Scanning is limited to the immediate contents of the selected folder; subfolders are not processed or moved.
+- 🗑️ No file deletion.
+- ♻️ No overwriting existing files.
+- 🛡️ When a destination filename already exists, a unique filename is generated instead.
+- ⚙️ The application's own source file or running executable and temporary files are excluded from scanning and organization.
 
-Always review the preview before confirming file operations.
+**Always review the organization preview before confirming file operations.**
 
-## 🗺️ Roadmap
+## 🗺️ Development Roadmap
 
 - [x] Initial file organizer implementation.
 - [x] Automatic file categorization.
@@ -110,16 +146,21 @@ Always review the preview before confirming file operations.
 - [x] Window geometry persistence, quick rescan, live search and sorting.
 - [x] Clear Session and improved scan and organization feedback.
 - [x] V1.3 visual refinement, category clarity and improved search and empty states.
-- [ ] **V2.0 — Final stable release with a standalone Windows executable (.exe).**
+- [x] V2.0 final stable release.
+- [x] Standalone Windows executable with custom application icon.
 
 ## 📌 Project Status
 
-**Current Version:** 1.3
+**Current Version:** 2.0
 
-**Status:** Functional — V1.3 UI/UX and usability improvements implemented.
+**Status:** Final Stable Release ✅
 
-A standalone Windows executable is planned for the V2.0 final stable release and is not included in this version.
+MRN Downloads Organizer V2.0 is a fully packaged Windows desktop application with a standalone executable.
+
+The project is maintained as a personal utility for the developer and friends.
 
 ---
 
-Developed by **MRN** 👑
+Developed with ❤️ by **MRN** 👑
+
+*Simple. Safe. Organized.*
