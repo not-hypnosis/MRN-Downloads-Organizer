@@ -1,12 +1,19 @@
+# MRN Downloads Organizer — V2.1
+# Generated files, virtual environments and local configuration
+
+# Python cache
 __pycache__/
 *.py[cod]
 
+# Build artifacts
 build/
 dist/
 *.spec
 
+# Virtual environments
 .env
 .venv/
 venv/
 
+# Logs
 *.log
